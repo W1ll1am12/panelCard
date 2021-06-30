@@ -1,0 +1,550 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/camelcase */
+/* eslint-disable @typescript-eslint/ban-types */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import {
+  LitElement,
+  html,
+  customElement,
+  property,
+  TemplateResult,
+  css,
+  internalProperty,
+  CSSResult,
+} from 'lit-element';
+import {
+  HomeAssistant,
+  ActionHandlerEvent,
+  handleAction,
+  LovelaceCardEditor,
+  computeDomain,
+  fireEvent,
+  turnOnOffEntity,
+  computeStateDisplay,
+} from 'custom-card-helpers'; // This is a community maintained npm module with common helper functions/types
+import { findEntities, mapEntities } from "./components/find_entities"
+import './editor';
+
+import type { PanelCardConfig, zoneConfig, apperanceProperties} from './types';
+import { CARD_VERSION } from './const';
+import { localize } from './localize/localize';
+import { HassEntity } from 'home-assistant-js-websocket';
+
+/* eslint no-console: 0 */
+console.info(
+  `%c  PANEL-CARD \n%c  ${localize('common.version')} ${CARD_VERSION}    `,
+  'color: white; font-weight: bold; background: black',
+  'color: white; font-weight: bold; background: dimgray',
+);
+
+// This puts your card into the UI card picker dialog
+(window as any).customCards = (window as any).customCards || [];
+(window as any).customCards.push({
+  type: 'panel-card',
+  name: 'Panel Card',
+  description: 'A custom panel to display entities grouped into zones',
+});
+
+@customElement('panel-card')
+export class PanelCard extends LitElement {
+  public static async getConfigElement(): Promise<LovelaceCardEditor> {
+    return document.createElement('panel-card-editor');
+  }
+
+  public static getStubConfig(
+    hass: HomeAssistant,
+    entities: string[],
+    entitiesFallback: string[],
+    zone: zoneConfig,
+    props: apperanceProperties,
+  ): PanelCardConfig {
+    const maxEntities = 3;
+    const foundEntities = findEntities(
+      hass,
+      maxEntities,
+      entities,
+      entitiesFallback,
+      ["light", "switch", "sensor"]
+    );
+    zone = { name: "default", entities: mapEntities(foundEntities)}
+    props = {
+      propArray: [
+        { name: "Switch Height", type: "number",  attr: 75  },
+        { name: "Switch Width",  type: "number",  attr: 300 },
+        { name: "Slider Background Color", type: "color", attr: "#4d4d4d" },
+        { name: "Slider Foreground Color", type: "color", attr: "#000000" },
+
+    ]
+    }
+    return { type: "custom:panel-card",  zones: [zone], props: props };
+  }
+
+  @property({ attribute: false }) public hass!: HomeAssistant;
+  @internalProperty() private config!: PanelCardConfig;
+  @internalProperty() private active!: string;
+
+  public setConfig(config: PanelCardConfig): void {
+    if (!config.zones) {
+      throw new Error('You need to define atleast one zone');
+    }
+    this.config = {
+      name: 'panelCard',
+      ...config,
+    };
+
+    this.active = this.config.zones[0].name;
+  }
+
+
+  protected render(): TemplateResult | void {
+    if (!this.active) {
+      console.log("no active zones")
+      this.active = this.config.zones[0].name;
+    }
+    const activeZoneName = (this.active);
+    const activeZone = this.config.zones.find((zone: { name: any }) => zone.name === activeZoneName);
+    const apperanceProperties: apperanceProperties = this.config!.props!;
+    let entityCounter = 0;
+
+    if (this.config.show_warning) {
+      return this._showWarning(localize('common.show_warning'));
+    }
+
+    if (this.config.show_error) {
+      return this._showError(localize('common.show_error'));
+    }
+
+    return html`
+      <div class="page">
+        <div class="top" style="height: ${this.config.zones.length}">
+          <div class="buttons">
+            ${this.config.zones.map(
+              (zone: { name: string }) => html`<button tabindex='0' class="btn-zone" style="--backColor: ${apperanceProperties.propArray[2].attr}; --forgroundColor: ${apperanceProperties.propArray[3].attr};" @click=${this._clickHandler}>${zone.name}</button>`,
+            )}
+          </div>
+        </div>
+        <div class="spacer" style="--backColor: ${apperanceProperties.propArray[2].attr};"></div>
+        <div class="bottom">
+          <div class="inner-main">
+            ${activeZone!.entities!.map((ent: { entity: string; name: string }) => {
+              entityCounter++;
+              const stateObj = this.hass.states[ent.entity];
+              return stateObj
+                ? html`
+                <div class="holder" style="--slider-width: ${apperanceProperties.propArray[1].attr + 'px'};">
+                  <div class="innerHolder" >
+                    ${this._getEntityTypeHTML(stateObj, ent, apperanceProperties)}
+                  </div>
+                </div>
+              </div>
+            </div>
+                `
+                : html``;
+            })}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  private _getEntityTypeHTML(stateObj: HassEntity, ent, apperanceProperties: apperanceProperties ): any {
+    const entType: String = computeDomain(stateObj.entity_id);
+    switch (entType) {
+      case "light":
+        return html`
+        <div class="range-holder" style="--slider-width: ${apperanceProperties.propArray[1].attr + 'px'}; --slider-height: ${apperanceProperties.propArray[0].attr + 'px'}; --backColor: ${apperanceProperties.propArray[2].attr}; --forgroundColor: ${apperanceProperties.propArray[3].attr}">
+            <div class="range-info">
+              <h2>${ent.name || stateObj.attributes.friendly_name}</h2>
+              <h4 class="brightness">
+              ${stateObj.state === 'off' ? '0' : Math.round(stateObj.attributes.brightness / 2.55)}
+              </h4>
+            </div>
+            <input
+              type="range"
+              class="${stateObj.state}"
+              .value="${stateObj.state === 'off'
+                ? '0'
+                : Math.round(stateObj.attributes.brightness / 2.55).toString()}"
+              @change=${(e: { target: { value: any } }) => this._setBrightness(stateObj, e.target.value)}
+            />
+        </div>
+        <button class="moreInfo" @click=${(_e) => this._handleMoreInfo(stateObj)}></button>
+       `
+        break
+      case "switch":
+      case "fan":
+      case "group":
+      case "lock":
+        let switchValue = 0;
+        switch (stateObj.state) {
+          case 'on':
+          case 'locked':
+            switchValue = 1;
+            break;
+          case 'off':
+          case 'unlocked':
+            switchValue = 0;
+            break;
+          default:
+            switchValue = 0;
+        }
+        return html`
+          <div
+            class="switch-holder"
+            style="--switch-height: ${apperanceProperties.propArray[0].attr + 'px'};--switch-width: ${apperanceProperties.propArray[1].attr + 'px'};--backColor: ${apperanceProperties.propArray[2].attr}; --forgroundColor: ${apperanceProperties.propArray[3].attr}"
+          >
+            <div class="switch-label">
+              <h2>${ent.name || stateObj.attributes.friendly_name}</h2>
+            </div>
+            <div class="${ entType === "lock" ? "switch-toggle lock" : "switch-toggle"}">
+              <input type="checkbox" id="${ent.name || stateObj.attributes.friendly_name}" ?checked="${switchValue === 1 ? true : false}"  @click= ${(e) => this._switch(e, stateObj) }>
+              <label for="${ent.name || stateObj.attributes.friendly_name}"></label>
+            </div>
+          </div>
+          <button class="moreInfo" @click=${(_e) => this._handleMoreInfo(stateObj)}></button>
+        `
+        break
+
+      case "sensor":
+      case "binary_sensor":
+        return html`
+        <div class="info" style="--sliderWidth: ${apperanceProperties.propArray[1].attr + 'px'}; --sliderHeight: ${apperanceProperties.propArray[0].attr + 'px'}; --backColor: ${apperanceProperties.propArray[2].attr}; --forgroundColor: ${apperanceProperties.propArray[3].attr};">
+          <h2>${stateObj.attributes.friendly_name}</h2>
+          <h4>${computeStateDisplay(this.hass.localize, stateObj, this.hass.language)}</h4>
+        </div>
+        <button class="moreInfo" @click=${(_e) => this._handleMoreInfo(stateObj)}></button>
+        `
+        break
+      default:
+        return html`<h2>UNKNOWN ENTITY TYPE</h2>`
+        break
+    }
+  }
+
+  private _handleAction(ev: ActionHandlerEvent): void {
+    if (this.hass && this.config && ev.detail.action) {
+      handleAction(this, this.hass, this.config, ev.detail.action);
+    }
+  }
+
+  private _setBrightness(state, value: number): void {
+    this.hass.callService('homeassistant', 'turn_on', {
+      entity_id: state.entity_id,
+      brightness: value * 2.55,
+    });
+  }
+
+  private _switch(e, state): void {
+    const turnOn = (e.target).checked ? false : true;
+    turnOnOffEntity(this.hass, state.entity_id, turnOn);
+  }
+
+
+  private _handleMoreInfo(stateObj) {
+    fireEvent(this, "hass-more-info", {
+      entityId: stateObj.entity_id,
+    });
+  }
+
+
+  private _clickHandler(event: { target: { innerText: string } }): void {
+    this.active = event.target.innerText;
+  }
+
+  private _showWarning(warning: string): TemplateResult {
+    return html` <hui-warning>${warning}</hui-warning> `;
+  }
+
+  private _showError(error: string): TemplateResult {
+    const errorCard = document.createElement('hui-error-card');
+    errorCard.setConfig({
+      type: 'error',
+      error,
+      origConfig: this.config,
+    });
+
+    return html` ${errorCard} `;
+  }
+
+  // https://lit-element.polymer-project.org/guide/styles
+  static get styles(): CSSResult {
+    return css`
+      .page {
+        width: 100%;
+        height: 90vh;
+        display: flex;
+        background: var(--ha-card-background, var(--card-background-color, white));
+        color: var(--primary-text-color);
+        flex-direction: column;
+        border-radius: var(--ha-card-border-radius, 4px);
+      }
+
+      .top {
+        max-height: 40%;
+        display: block;
+        justify-content: center;
+        overflow: scroll;
+        text-align: center;
+      }
+
+      .bottom {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        width: 100%;
+        height: 58%;
+        overflow: scroll;
+        margin-top: 10px;
+      }
+      .spacer {
+        height: 2%;
+        background: var(--backColor);
+      }
+      .buttons {
+        margin-top: 7px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        height: auto;
+      }
+      .buttons button {
+        width: 95%;
+        height: 50px;
+        font-size: 16px;
+        font-weight: bold;
+        background: #1c1c1c;
+        /* color: white; */
+        border-width: 2px;
+        border-color: black;
+        margin-bottom: 7px;
+        box-shadow: 2px 2px 2px darkgray;
+        border-radius: 5px;
+      }
+
+      .buttons button:active, .buttons button:focus{
+        background: var(--backColor);
+      }
+
+      .back-btn {
+        border: 2px solid #fff;
+        /* color: #fff; */
+        background: transparent;
+        font-size: 18px;
+        border-radius: 4px;
+        width: 100%;
+        display: block;
+        padding: 10px 0px;
+        margin-top: 5px;
+      }
+
+      .page > .bottom > .inner-main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100%;
+        margin: auto;
+      }
+      .page > .bottom > .inner-main > .holder {
+        width: var(--slider-width);
+        height: 90px;
+        position: relative;
+        margin: auto;
+      }
+
+      h2 {
+        /* color: rgb(255, 255, 255); */
+        display: block;
+        margin-bottom: 0px;
+        text-align: center;
+        font-size: 16px;
+        margin-top: 0px;
+        z-index: 10;
+        position: relative;
+      }
+      h4, span {
+        /* color: rgb(255, 255, 255); */
+        display: flex;
+        font-weight: 300;
+        margin-bottom: 10px;
+        text-align: center;
+        font-size: 16px;
+        margin-top: 0px;
+        z-index: 10;
+        position: relative;
+        justify-content: center;
+        align-items: center;
+      }
+      h4.brightness:after {
+        content: '%';
+        padding-left: 1px;
+      }
+
+      .range-holder {
+        height: var(--slider-height);
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: var(--slider-width);
+        background: var(--backColor);
+        border-radius: 10px;
+      }
+      .range-holder input[type='range'] {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        overflow: hidden;
+        width: 50%;
+        height: 50%;
+        background: var(--backColor);
+        padding-right: 10px;
+      }
+      .range-holder input[type='range']::-webkit-slider-runnable-track {
+        height: 20px;
+        overflow: hidden !important;
+        display: flex;
+        align-items: center;
+        height: 20px;
+        border-radius: 10px;
+        box-shadow: inset -3px -3px 5px rgba(255,255,255,.2), inset 3px 3px 5px rgba(0, 0, 0, 0.25);
+      }
+      .range-holder input[type="range"]::-webkit-slider-container{
+        overflow: hidden;
+      }
+      .range-holder input[type='range']::-webkit-slider-thumb {
+        height: 20px;
+        width: 20px;
+        background: white;
+        -webkit-appearance: none;
+        box-shadow: -340px 0 0 330px var(--forgroundColor), inset 0 0 0 3px var(--forgroundColor);
+        border-radius: 50%;
+        -webkit-transition: box-shadow 0.2s ease-in-out;
+        transition: box-shadow 0.2s ease-in-out;
+        position: relative;
+      }
+      .range-holder input[type=range]:active::-webkit-slider-thumb {
+        background: #fff;
+        box-shadow: -340px 0 0 330px var(--forgroundColor), inset 0 0 0 3px var(--forgroundColor);
+        overflow: hidden;
+      }
+      .range-info{
+        width: 50%;
+      }
+
+      .switch-holder {
+        height: var(--switch-height);
+        width: var(--switch-width);
+        background-color: var(--backColor);
+        position: relative;
+        display: flex;
+        border-radius: 10px;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .switch-label {
+        width: 150px;
+      }
+      .switch-label i {
+        margin-right: 5px;
+      }
+
+      .switch-toggle {
+          height: 40px;
+          margin-right: 15px;
+      }
+
+      .switch-toggle input[type="checkbox"] {
+          position: absolute;
+          opacity: 0;
+          z-index: -2;
+      }
+
+      .switch-toggle input[type="checkbox"] + label {
+          position: relative;
+          display: inline-block;
+          background: var(--forgroundColor);
+          width: 100px;
+          height: 40px;
+          border-radius: 20px;
+          margin: 0;
+          cursor: pointer;
+          box-shadow: inset -8px -8px 15px rgba(255,255,255,.01),
+                      inset 10px 10px 10px rgba(0,0,0, 0);
+
+      }
+      .switch-toggle.lock input[type="checkbox"] + label::before{
+        content: 'UNLOCKED';
+        font-size: 8px;
+      }
+      .switch-toggle.lock input[type="checkbox"]:checked + label::before {
+        content: 'LOCKED';
+        font-size: 10px;
+      }
+
+      .switch-toggle input[type="checkbox"] + label::before {
+          position: absolute;
+          content: 'OFF';
+          font-size: 13px;
+          text-align: center;
+          line-height: 25px;
+          top: 6px;
+          left: 8px;
+          width: 45px;
+          height: 25px;
+          border-radius: 20px;
+          border: var(--backColor) solid 2px;
+          /* color: var(--backColor); */
+          box-shadow: -2px -2px 1px rgba(255,255,255,.2),
+                      2px 2px 5px rgba(0,0,0, .25);
+          transition: .3s ease-in-out;
+      }
+
+      .switch-toggle input[type="checkbox"]:checked + label::before {
+          left: 50%;
+          content: 'ON';
+          /* color: var(--foregroundColor); */
+          box-shadow: -2px -2px 1px rgba(255,255,255,.2),
+                      2px 2px 5px rgba(0,0,0, .25);
+      }
+
+      .switch-holder h2 {
+        width: 140px;
+        height: 75px;
+        text-align: center;
+        margin-left: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .info{
+        width: var(--sliderWidth);
+        height: var(--sliderHeight);
+        text-align: center;
+        border-radius: 10px;
+        background-color: var(--backColor);
+        justify-content: center;
+        align-items: center;
+        display: flex;
+      }
+      .info{
+        flex-direction: column;
+      }
+
+      .climate{
+        flex-direction: row;
+      }
+
+      .moreInfo{
+        width: var(--slider-width);
+        padding-top: 15px;
+        background: none;
+        border: none;
+      }
+
+    `;
+  }
+}
