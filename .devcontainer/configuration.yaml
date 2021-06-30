@@ -1,0 +1,6 @@
+default_config:
+lovelace:
+  resources:
+  - url: http://0.0.0.0:5000/boilerplate-card.js
+    type: module
+demo:
