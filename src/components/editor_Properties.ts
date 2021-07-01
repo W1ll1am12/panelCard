@@ -1,21 +1,11 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import {
-  css,
-  CSSResult,
-  customElement,
-  html,
-  internalProperty,
-  LitElement,
-  property,
-  TemplateResult,
-} from 'lit-element';
+import { css, html, LitElement, TemplateResult } from 'lit';
+import { customElement, state, property } from 'lit/decorators';
 
 import { fireEvent } from 'custom-card-helpers';
-//import { mdiChevronDown, mdiClose } from '@mdi/js';
 import { apperanceProperties, propType } from '../types';
-
 declare global {
   interface HASSDomEvents {
     'properties-changed': {
@@ -26,9 +16,7 @@ declare global {
 
 @customElement('editor-properties')
 export class EditorProperties extends LitElement {
-  //@property({ attribute: false }) protected hass?: HomeAssistant;
-
-  @internalProperty() private shown = true;
+  @state() private shown = true;
 
   @property({ attribute: false }) private apperanceProperties?: apperanceProperties;
 
@@ -94,7 +82,7 @@ export class EditorProperties extends LitElement {
     `;
   }
 
-  static get styles(): CSSResult[] {
+  static get styles() {
     return [
       css`
         .zone1 {

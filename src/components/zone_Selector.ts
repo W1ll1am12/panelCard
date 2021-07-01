@@ -1,16 +1,8 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import {
-  css,
-  CSSResult,
-  customElement,
-  html,
-  internalProperty,
-  LitElement,
-  property,
-  TemplateResult,
-} from 'lit-element';
+import { css, html, LitElement, TemplateResult } from 'lit';
+import { customElement, state, property } from 'lit/decorators';
 
 import { fireEvent, HomeAssistant, EntityConfig } from 'custom-card-helpers';
 import { mdiChevronDown, mdiClose } from '@mdi/js';
@@ -33,13 +25,13 @@ export class ZoneEntitySelector extends LitElement {
 
   @property({ attribute: false }) protected zone?: zoneConfig;
 
-  @internalProperty() protected entities?: EntityConfig[];
+  @state() protected entities?: EntityConfig[];
 
-  @internalProperty() private name?: string;
+  @state() private name?: string;
 
-  @internalProperty() private shown = true;
+  @state() private shown = true;
 
-  @internalProperty() private zoneIndex?: number;
+  @state() private zoneIndex?: number;
 
   protected render(): TemplateResult {
     if (!this.zone || !this.hass) {
@@ -154,7 +146,7 @@ export class ZoneEntitySelector extends LitElement {
     }
   }
 
-  static get styles(): CSSResult[] {
+  static get styles() {
     return [
       css`
         .zone {

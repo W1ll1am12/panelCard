@@ -25,7 +25,6 @@ const arrayFilter = (array: any[], conditions: Array<(value: any) => boolean>, m
       filteredArray.push(array[i]);
     }
   }
-
   return filteredArray;
 };
 

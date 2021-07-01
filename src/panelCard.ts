@@ -8,17 +8,16 @@
 import {
   LitElement,
   html,
-  customElement,
-  property,
   TemplateResult,
   css,
-  internalProperty,
-  CSSResult,
-} from 'lit-element';
+} from 'lit';
+import {
+  property,
+  customElement,
+  state,
+} from 'lit/decorators'
 import {
   HomeAssistant,
-  ActionHandlerEvent,
-  handleAction,
   LovelaceCardEditor,
   computeDomain,
   fireEvent,
@@ -76,15 +75,14 @@ export class PanelCard extends LitElement {
         { name: "Switch Width",  type: "number",  attr: 300 },
         { name: "Slider Background Color", type: "color", attr: "#4d4d4d" },
         { name: "Slider Foreground Color", type: "color", attr: "#000000" },
-
     ]
     }
     return { type: "custom:panel-card",  zones: [zone], props: props };
   }
 
   @property({ attribute: false }) public hass!: HomeAssistant;
-  @internalProperty() private config!: PanelCardConfig;
-  @internalProperty() private active!: string;
+  @state() private config!: PanelCardConfig;
+  @state() private active!: string;
 
   public setConfig(config: PanelCardConfig): void {
     if (!config.zones) {
@@ -94,10 +92,8 @@ export class PanelCard extends LitElement {
       name: 'panelCard',
       ...config,
     };
-
     this.active = this.config.zones[0].name;
   }
-
 
   protected render(): TemplateResult | void {
     if (!this.active) {
@@ -107,15 +103,6 @@ export class PanelCard extends LitElement {
     const activeZoneName = (this.active);
     const activeZone = this.config.zones.find((zone: { name: any }) => zone.name === activeZoneName);
     const apperanceProperties: apperanceProperties = this.config!.props!;
-    let entityCounter = 0;
-
-    if (this.config.show_warning) {
-      return this._showWarning(localize('common.show_warning'));
-    }
-
-    if (this.config.show_error) {
-      return this._showError(localize('common.show_error'));
-    }
 
     return html`
       <div class="page">
@@ -130,7 +117,6 @@ export class PanelCard extends LitElement {
         <div class="bottom">
           <div class="inner-main">
             ${activeZone!.entities!.map((ent: { entity: string; name: string }) => {
-              entityCounter++;
               const stateObj = this.hass.states[ent.entity];
               return stateObj
                 ? html`
@@ -181,11 +167,11 @@ export class PanelCard extends LitElement {
         let switchValue = 0;
         switch (stateObj.state) {
           case 'on':
-          case 'locked':
+          case 'unlocked':
             switchValue = 1;
             break;
           case 'off':
-          case 'unlocked':
+          case 'locked':
             switchValue = 0;
             break;
           default:
@@ -224,12 +210,6 @@ export class PanelCard extends LitElement {
     }
   }
 
-  private _handleAction(ev: ActionHandlerEvent): void {
-    if (this.hass && this.config && ev.detail.action) {
-      handleAction(this, this.hass, this.config, ev.detail.action);
-    }
-  }
-
   private _setBrightness(state, value: number): void {
     this.hass.callService('homeassistant', 'turn_on', {
       entity_id: state.entity_id,
@@ -238,7 +218,8 @@ export class PanelCard extends LitElement {
   }
 
   private _switch(e, state): void {
-    const turnOn = (e.target).checked ? false : true;
+    console.log((e.target).checked)
+    const turnOn = (e.target).checked ? true : false;
     turnOnOffEntity(this.hass, state.entity_id, turnOn);
   }
 
@@ -254,27 +235,12 @@ export class PanelCard extends LitElement {
     this.active = event.target.innerText;
   }
 
-  private _showWarning(warning: string): TemplateResult {
-    return html` <hui-warning>${warning}</hui-warning> `;
-  }
-
-  private _showError(error: string): TemplateResult {
-    const errorCard = document.createElement('hui-error-card');
-    errorCard.setConfig({
-      type: 'error',
-      error,
-      origConfig: this.config,
-    });
-
-    return html` ${errorCard} `;
-  }
-
   // https://lit-element.polymer-project.org/guide/styles
-  static get styles(): CSSResult {
+  static get styles() {
     return css`
       .page {
         width: 100%;
-        height: 90vh;
+        max-height: 90vh;
         display: flex;
         background: var(--ha-card-background, var(--card-background-color, white));
         color: var(--primary-text-color);
@@ -300,11 +266,12 @@ export class PanelCard extends LitElement {
         margin-top: 10px;
       }
       .spacer {
-        height: 2%;
+        height: 5px;
         background: var(--backColor);
       }
       .buttons {
         margin-top: 7px;
+        margin-bottom: 7px;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -317,7 +284,6 @@ export class PanelCard extends LitElement {
         font-size: 16px;
         font-weight: bold;
         background: #1c1c1c;
-        /* color: white; */
         border-width: 2px;
         border-color: black;
         margin-bottom: 7px;
@@ -476,12 +442,12 @@ export class PanelCard extends LitElement {
 
       }
       .switch-toggle.lock input[type="checkbox"] + label::before{
-        content: 'UNLOCKED';
+        content: 'LOCKED';
         font-size: 8px;
       }
       .switch-toggle.lock input[type="checkbox"]:checked + label::before {
-        content: 'LOCKED';
-        font-size: 10px;
+        content: 'UNLOCKED';
+        font-size: 8px;
       }
 
       .switch-toggle input[type="checkbox"] + label::before {
@@ -496,7 +462,6 @@ export class PanelCard extends LitElement {
           height: 25px;
           border-radius: 20px;
           border: var(--backColor) solid 2px;
-          /* color: var(--backColor); */
           box-shadow: -2px -2px 1px rgba(255,255,255,.2),
                       2px 2px 5px rgba(0,0,0, .25);
           transition: .3s ease-in-out;
@@ -505,7 +470,6 @@ export class PanelCard extends LitElement {
       .switch-toggle input[type="checkbox"]:checked + label::before {
           left: 50%;
           content: 'ON';
-          /* color: var(--foregroundColor); */
           box-shadow: -2px -2px 1px rgba(255,255,255,.2),
                       2px 2px 5px rgba(0,0,0, .25);
       }

@@ -1,16 +1,9 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/camelcase */
-import {
-  LitElement,
-  html,
-  customElement,
-  property,
-  TemplateResult,
-  CSSResult,
-  css,
-  internalProperty,
-} from 'lit-element';
+import { LitElement, html, TemplateResult, css } from 'lit';
+import { property, state, customElement } from 'lit/decorators';
 import { HomeAssistant, fireEvent, LovelaceCardEditor, EntityConfig } from 'custom-card-helpers';
 import './components/zone_Selector';
 import './components/editor_Properties';
@@ -20,14 +13,13 @@ import { mdiPlusThick, mdiChevronDown } from '@mdi/js';
 @customElement('panel-card-editor')
 export class PanelEditor extends LitElement implements LovelaceCardEditor {
   @property({ attribute: false }) public hass?: HomeAssistant;
-  @internalProperty() private _config?: PanelCardConfig;
-  @internalProperty() private _configEntities?: EntityConfig[];
-  @internalProperty() private _zoneName?: string;
-  @internalProperty() private _toggle?: boolean;
-  @internalProperty() private _helpers?: any;
-  @internalProperty() private _zoneCount?: number;
-  @internalProperty() private _shown?: boolean;
-  @internalProperty() private _apperanceProperties?: apperanceProperties;
+  @state() private _config?: PanelCardConfig;
+  @state() private _configEntities?: EntityConfig[];
+  @state() private _zoneName?: string;
+  @state() private _toggle?: boolean;
+  @state() private _zoneCount?: number;
+  @state() private _shown?: boolean;
+  @state() private _apperanceProperties?: apperanceProperties;
   private _initialized = false;
 
   public setConfig(config: PanelCardConfig): void {
@@ -36,7 +28,6 @@ export class PanelEditor extends LitElement implements LovelaceCardEditor {
     this._zoneName = config.zones[0].name;
     this._shown = true;
     this._apperanceProperties = config.props;
-    this.loadCardHelpers();
     if (!this._zoneCount) {
       if (this._config.zones.length > 0) {
         this._zoneCount = this._config.zones.length;
@@ -54,11 +45,9 @@ export class PanelEditor extends LitElement implements LovelaceCardEditor {
   }
 
   protected render(): TemplateResult | void {
-    if (!this.hass || !this._helpers) {
+    if (!this.hass) {
       return html``;
     }
-    // The climate more-info has ha-switch and paper-dropdown-menu elements that are lazy loaded unless explicitly done here
-    this._helpers.importMoreInfoControl('climate');
 
     return html`
       <div class="card-config">
@@ -111,13 +100,9 @@ export class PanelEditor extends LitElement implements LovelaceCardEditor {
   private _initialize(): void {
     if (this.hass === undefined) return;
     if (this._config === undefined) return;
-    if (this._helpers === undefined) return;
     this._initialized = true;
   }
 
-  private async loadCardHelpers(): Promise<void> {
-    this._helpers = await (window as any).loadCardHelpers();
-  }
   private _addZone(): void {
     this._zoneCount = this._zoneCount! + 1;
     const maxEntities = 3;
@@ -169,7 +154,7 @@ export class PanelEditor extends LitElement implements LovelaceCardEditor {
     fireEvent(this, 'config-changed', { config: this._config });
   }
 
-  static get styles(): CSSResult {
+  static get styles() {
     return css`
       .zone {
         border: solid #3d3d3d 5px;
