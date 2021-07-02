@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { css, html, LitElement, TemplateResult } from 'lit';
 import { customElement, state, property } from 'lit/decorators';
 
@@ -96,7 +93,7 @@ export class ZoneEntitySelector extends LitElement {
     `;
   }
 
-  private _valueChanged(ev: CustomEvent, index): void {
+  private async _valueChanged(ev: CustomEvent, index): Promise<void> {
     const value = ev.detail.value;
     const entityIndex = index;
     const newConfigEntities = this.zone!.entities!.concat();
@@ -111,7 +108,7 @@ export class ZoneEntitySelector extends LitElement {
     const newZone: zoneConfig = { name: newName, entities: newConfigEntities };
     fireEvent(this, 'entities-changed', { zone: newZone, zoneIndex: this.zoneIndex });
   }
-  private _titleChanged(ev): void {
+  private async _titleChanged(ev): Promise<void> {
     const zoneName = ev.detail.value;
     const newConfigEntities = [...this.zone!.entities!];
     const newZone: zoneConfig = { name: zoneName, entities: newConfigEntities };

@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { css, html, LitElement, TemplateResult } from 'lit';
 import { customElement, state, property } from 'lit/decorators';
 

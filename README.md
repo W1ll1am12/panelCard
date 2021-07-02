@@ -4,9 +4,9 @@ A home assistant card to display multiple entities for multiple zones
 
 ## Support
 
-Hey dude! Help me out for a couple of :beers: or a :coffee:!
+Hey dude! Help me out for a couple of :coffee:!
 
-[![coffee](https://www.buymeacoffee.com/assets/img/custom_images/black_img.png)](https://www.buymeacoffee.com/zJtVxUAgH)
+[![coffee](https://www.buymeacoffee.com/assets/img/custom_images/black_img.png)](https://www.buymeacoffee.com/W1ll1am12)
 
 ## Options
 

@@ -1,10 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-/* eslint-disable @typescript-eslint/camelcase */
-/* eslint-disable @typescript-eslint/ban-types */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import {
   LitElement,
   html,
@@ -26,7 +19,6 @@ import {
 } from 'custom-card-helpers'; // This is a community maintained npm module with common helper functions/types
 import { findEntities, mapEntities } from "./components/find_entities"
 import './editor';
-
 import type { PanelCardConfig, zoneConfig, apperanceProperties} from './types';
 import { CARD_VERSION } from './const';
 import { localize } from './localize/localize';
