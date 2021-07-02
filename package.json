@@ -16,9 +16,8 @@
   "license": "MIT",
   "dependencies": {
     "@mdi/js": "^5.9.55",
-    "custom-card-helpers": "^1.6.6",
+    "custom-card-helpers": "^1.7.1",
     "home-assistant-js-websocket": "^4.5.0",
-    "intl-messageformat": "^9.7.0",
     "lit": "^2.0.0-rc.2"
   },
   "devDependencies": {

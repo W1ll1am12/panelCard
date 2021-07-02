@@ -191,7 +191,7 @@ export class PanelCard extends LitElement {
         return html`
         <div class="info" style="--sliderWidth: ${apperanceProperties.propArray[1].attr + 'px'}; --sliderHeight: ${apperanceProperties.propArray[0].attr + 'px'}; --backColor: ${apperanceProperties.propArray[2].attr}; --forgroundColor: ${apperanceProperties.propArray[3].attr};">
           <h2>${stateObj.attributes.friendly_name}</h2>
-          <h4>${computeStateDisplay(this.hass.localize, stateObj, this.hass.language)}</h4>
+          <h4>${computeStateDisplay(this.hass.localize, stateObj, this.hass.locale!)}</h4>
         </div>
         <button class="moreInfo" @click=${(_e) => this._handleMoreInfo(stateObj)}></button>
         `
