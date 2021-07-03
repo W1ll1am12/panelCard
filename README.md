@@ -2,6 +2,8 @@
 
 A home assistant card to display multiple entities for multiple zones
 
+![example](./examples/overview.gif)
+
 ## Support
 
 Hey dude! Help me out for a couple of :coffee:!
@@ -29,12 +31,15 @@ Hey dude! Help me out for a couple of :coffee:!
 | ------ | ------ | ------------ | ------------------------ | -------- |
 | entity | string | **Optional** | Home Assistant Entity ID | 'none'   |
 
+Currently the only entity types that are supported are binary sensors, fans, lights, locks, switches, and sensors
+More entity support is in the works
+
 ## Props
 
 | Name | Type             | Requirement  | Description               | Supported options |
 | ---- | ---------------- | ------------ | ------------------------- | ----------------- |
 | name | string           | **Optional** | Name of the property      | 'any'             |
-| type | string           | **Optional** | Type of the property      | 'number' /        | 'color' |
+| type | string           | **Optional** | Type of the property      | 'number'/         | 'color' |
 | attr | number or string | **Optional** | Attribute of the property | 'any'             |
 
 ## Usage
@@ -70,5 +75,3 @@ props:
       type: color
       attr: '#000000'
 ```
-
-### Bonus
