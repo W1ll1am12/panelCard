@@ -1,10 +1,8 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/camelcase */
 import { LitElement, html, TemplateResult, css } from 'lit';
 import { property, state, customElement } from 'lit/decorators';
-import { HomeAssistant, fireEvent, LovelaceCardEditor, EntityConfig } from 'custom-card-helpers';
+import { HomeAssistant, LovelaceCardEditor, EntityConfig } from 'custom-card-helpers';
+import { fireEvent } from 'custom-card-helpers/src/fire-event';
+
 import './components/zone_Selector';
 import './components/editor_Properties';
 import { PanelCardConfig, zoneConfig, apperanceProperties } from './types';

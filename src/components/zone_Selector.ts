@@ -1,7 +1,8 @@
 import { css, html, LitElement, TemplateResult } from 'lit';
 import { customElement, state, property } from 'lit/decorators';
 
-import { fireEvent, HomeAssistant, EntityConfig } from 'custom-card-helpers';
+import { HomeAssistant, EntityConfig } from 'custom-card-helpers';
+import { fireEvent } from 'custom-card-helpers/src/fire-event';
 import { mdiChevronDown, mdiClose } from '@mdi/js';
 import { zoneConfig } from '../types';
 

@@ -1,7 +1,7 @@
 import { css, html, LitElement, TemplateResult } from 'lit';
 import { customElement, state, property } from 'lit/decorators';
 
-import { fireEvent } from 'custom-card-helpers';
+import { fireEvent } from 'custom-card-helpers/src/fire-event';
 import { apperanceProperties, propType } from '../types';
 declare global {
   interface HASSDomEvents {

@@ -13,10 +13,11 @@ import {
   HomeAssistant,
   LovelaceCardEditor,
   computeDomain,
-  fireEvent,
   turnOnOffEntity,
   computeStateDisplay,
-} from 'custom-card-helpers'; // This is a community maintained npm module with common helper functions/types
+} from 'custom-card-helpers';
+ // This is a community maintained npm module with common helper functions/types
+import { fireEvent} from "custom-card-helpers/src/fire-event"
 import { findEntities, mapEntities } from "./components/find_entities"
 import './editor';
 import type { PanelCardConfig, zoneConfig, apperanceProperties} from './types';
