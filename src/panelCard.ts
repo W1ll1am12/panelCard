@@ -15,6 +15,8 @@ import {
   computeDomain,
   turnOnOffEntity,
   computeStateDisplay,
+  createThing,
+  EntityConfig,
 } from 'custom-card-helpers';
  // This is a community maintained npm module with common helper functions/types
 import { fireEvent} from "custom-card-helpers/src/fire-event"
@@ -24,6 +26,16 @@ import type { PanelCardConfig, zoneConfig, apperanceProperties} from './types';
 import { CARD_VERSION } from './const';
 import { localize } from './localize/localize';
 import { HassEntity } from 'home-assistant-js-websocket';
+
+let helpers = (window as any).cardHelpers;
+const helperPromise = new Promise<void>(async (resolve) => {
+  if (helpers) resolve();
+  if ((window as any).loadCardHelpers) {
+    helpers = await (window as any).loadCardHelpers();
+    (window as any).cardHelpers = helpers;
+    resolve();
+  }
+});
 
 /* eslint no-console: 0 */
 console.info(
@@ -113,7 +125,7 @@ export class PanelCard extends LitElement {
               const stateObj = this.hass.states[ent.entity];
               return stateObj
                 ? html`
-                <div class="holder" style="--slider-width: ${apperanceProperties.propArray[1].attr + 'px'};">
+                <div class="holder" style="--slider-width: ${apperanceProperties.propArray[1].attr + 'px'}; --slider-height: ${apperanceProperties.propArray[0].attr + 'px'};">
                   <div class="innerHolder" >
                     ${this._getEntityTypeHTML(stateObj, ent, apperanceProperties)}
                   </div>
@@ -126,6 +138,7 @@ export class PanelCard extends LitElement {
           </div>
         </div>
       </div>
+
     `;
   }
 
@@ -189,6 +202,7 @@ export class PanelCard extends LitElement {
 
       case "sensor":
       case "binary_sensor":
+      case "air_quality":
         return html`
         <div class="info" style="--sliderWidth: ${apperanceProperties.propArray[1].attr + 'px'}; --sliderHeight: ${apperanceProperties.propArray[0].attr + 'px'}; --backColor: ${apperanceProperties.propArray[2].attr}; --forgroundColor: ${apperanceProperties.propArray[3].attr};">
           <h2>${stateObj.attributes.friendly_name}</h2>
@@ -197,6 +211,16 @@ export class PanelCard extends LitElement {
         <button class="moreInfo" @click=${(_e) => this._handleMoreInfo(stateObj)}></button>
         `
         break
+      // case "cover":
+      //   const conf: EntityConfig = {entity: ent.entity, type: "entity"}
+      //   const element = this._createCard(conf);
+      //   return html
+      //   `
+      //   <div>
+      //   ${element}
+      //   </div>
+      //   `
+      //   break
       default:
         return html`<h2>UNKNOWN ENTITY TYPE</h2>`
         break
@@ -211,9 +235,19 @@ export class PanelCard extends LitElement {
   }
 
   private _switch(e, state): void {
-    console.log((e.target).checked)
     const turnOn = (e.target).checked ? true : false;
     turnOnOffEntity(this.hass, state.entity_id, turnOn);
+  }
+
+  private _createCard(config: any): any {
+    if (helpers) return helpers.createCardElement(config);
+    else {
+      const element = createThing(config);
+      helperPromise.then(() => {
+        fireEvent(element, 'll-rebuild', {});
+      });
+      return element;
+    }
   }
 
 
@@ -252,7 +286,6 @@ export class PanelCard extends LitElement {
       .bottom {
         display: flex;
         flex-direction: column;
-        justify-content: center;
         width: 100%;
         height: 58%;
         overflow: scroll;
@@ -290,7 +323,6 @@ export class PanelCard extends LitElement {
 
       .back-btn {
         border: 2px solid #fff;
-        /* color: #fff; */
         background: transparent;
         font-size: 18px;
         border-radius: 4px;
@@ -303,19 +335,18 @@ export class PanelCard extends LitElement {
       .page > .bottom > .inner-main {
         display: flex;
         flex-direction: column;
-        align-items: center;
         height: 100%;
         margin: auto;
       }
       .page > .bottom > .inner-main > .holder {
         width: var(--slider-width);
-        height: 90px;
+        height: var(--slider-height);
         position: relative;
         margin: auto;
+        margin-bottom: 10px;
       }
 
       h2 {
-        /* color: rgb(255, 255, 255); */
         display: block;
         margin-bottom: 0px;
         text-align: center;
@@ -325,7 +356,6 @@ export class PanelCard extends LitElement {
         position: relative;
       }
       h4, span {
-        /* color: rgb(255, 255, 255); */
         display: flex;
         font-weight: 300;
         margin-bottom: 10px;
@@ -363,6 +393,7 @@ export class PanelCard extends LitElement {
       }
       .range-holder input[type='range']::-webkit-slider-runnable-track {
         height: 20px;
+        -webkit-appearance: none;
         overflow: hidden !important;
         display: flex;
         align-items: center;
@@ -376,6 +407,7 @@ export class PanelCard extends LitElement {
       .range-holder input[type='range']::-webkit-slider-thumb {
         height: 20px;
         width: 20px;
+        cursor: ew-resize;
         background: white;
         -webkit-appearance: none;
         box-shadow: -340px 0 0 330px var(--forgroundColor), inset 0 0 0 3px var(--forgroundColor);
@@ -387,7 +419,6 @@ export class PanelCard extends LitElement {
       .range-holder input[type=range]:active::-webkit-slider-thumb {
         background: #fff;
         box-shadow: -340px 0 0 330px var(--forgroundColor), inset 0 0 0 3px var(--forgroundColor);
-        overflow: hidden;
       }
       .range-info{
         width: 50%;
