@@ -75,3 +75,7 @@ props:
       type: color
       attr: '#000000'
 ```
+
+![example](./examples/editor-properties.gif)
+![example](./examples/new-zone.gif)
+![example](./examples/zone-edit.gif)
