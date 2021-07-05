@@ -9,7 +9,6 @@ import { zoneConfig } from '../types';
 declare global {
   interface HASSDomEvents {
     'entities-changed': {
-      name?: string;
       zone?: zoneConfig;
       remove?: boolean;
       zoneIndex?: number;
@@ -40,11 +39,11 @@ export class ZoneEntitySelector extends LitElement {
         <div class="zoneName">
           <paper-input
             .label=${'Zone Name'}
-            .value=${this.zone?.name}
-            @value-changed=${this._titleChanged}
+            .value=${this.zone.name}
+            @value-changed=${e => this._valueChanged(e, 'name')}
           ></paper-input>
           <mwc-icon-button
-            aria-label=${this.hass!.localize('ui.components.entity.entity-picker.clear')}
+            aria-label=${this.hass.localize('ui.components.entity.entity-picker.clear')}
             class="expand"
             .value=${this.zone}
             @click=${this._toggle}
@@ -55,7 +54,7 @@ export class ZoneEntitySelector extends LitElement {
         ${this.shown == true
           ? html`
               <div class="entities">
-                ${this.zone?.entities!.map((ent, index) => {
+                ${this.zone.entities!.map((ent, index) => {
                   return html`
                     <div class="entity">
                       <ha-entity-picker
@@ -65,13 +64,13 @@ export class ZoneEntitySelector extends LitElement {
                         .value=${ent.entity}
                         .zoneName=${this.name}
                         .index=${index}
-                        @value-changed=${e => this._valueChanged(e, index)}
+                        @value-changed=${e => this._valueChanged(e, 'update', index)}
                       ></ha-entity-picker>
                       <mwc-icon-button
                         aria-label=${this.hass!.localize('ui.components.entity.entity-picker.clear')}
                         class="remove-icon"
                         .index=${index}
-                        @click=${this._removeEntity}
+                        @click=${e => this._valueChanged(e, 'remove', index)}
                       >
                         <ha-svg-icon .path=${mdiClose}></ha-svg-icon>
                       </mwc-icon-button>
@@ -94,27 +93,22 @@ export class ZoneEntitySelector extends LitElement {
     `;
   }
 
-  private async _valueChanged(ev: CustomEvent, index): Promise<void> {
+  private async _valueChanged(ev: CustomEvent, action, index?): Promise<void> {
+    // value = entity
     const value = ev.detail.value;
-    const entityIndex = index;
     const newConfigEntities = this.zone!.entities!.concat();
-    const newName = this.zone!.name;
-    if (value === '') {
-      newConfigEntities.splice(entityIndex, 1);
+    let newName = this.zone!.name;
+    if (value === '' || action === 'remove') {
+      newConfigEntities.splice(index, 1);
+    } else if (action === 'update') {
+      newConfigEntities[index] = { entity: value! };
     } else {
-      newConfigEntities[entityIndex] = {
-        entity: value!,
-      };
+      newName = value;
     }
     const newZone: zoneConfig = { name: newName, entities: newConfigEntities };
     fireEvent(this, 'entities-changed', { zone: newZone, zoneIndex: this.zoneIndex });
   }
-  private async _titleChanged(ev): Promise<void> {
-    const zoneName = ev.detail.value;
-    const newConfigEntities = [...this.zone!.entities!];
-    const newZone: zoneConfig = { name: zoneName, entities: newConfigEntities };
-    fireEvent(this, 'entities-changed', { zone: newZone, zoneIndex: this.zoneIndex });
-  }
+
   private async _addEntity(ev: CustomEvent): Promise<void> {
     const value = ev.detail.value;
     const newConfigName = this.zone!.name;
@@ -125,16 +119,8 @@ export class ZoneEntitySelector extends LitElement {
     const newZone: zoneConfig = { name: newConfigName, entities: newConfigEntities };
     fireEvent(this, 'entities-changed', { zone: newZone, zoneIndex: this.zoneIndex });
   }
-  private async _removeEntity(ev: CustomEvent): Promise<void> {
-    const entityIndex: number = (ev.currentTarget as any).index;
-    const newConfigEntities = this.zone!.entities!.concat();
-    const newConfigName = this.zone!.name!;
-    newConfigEntities.splice(entityIndex, 1);
-    const newZone: zoneConfig = { name: newConfigName, entities: newConfigEntities };
-    fireEvent(this, 'entities-changed', { zone: newZone, zoneIndex: this.zoneIndex });
-  }
   private async _removeZone(): Promise<void> {
-    fireEvent(this, 'entities-changed', { zone: this.zone, remove: true });
+    fireEvent(this, 'entities-changed', { zone: this.zone, remove: true, zoneIndex: this.zoneIndex });
   }
   private _toggle(): void {
     if (this.shown == true) {

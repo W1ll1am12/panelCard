@@ -37,7 +37,6 @@ export class PanelEditor extends LitElement implements LovelaceCardEditor {
 
   protected shouldUpdate(): boolean {
     if (!this._initialized) {
-      this._initialize();
     }
     return true;
   }
@@ -46,7 +45,6 @@ export class PanelEditor extends LitElement implements LovelaceCardEditor {
     if (!this.hass) {
       return html``;
     }
-
     return html`
       <div class="card-config">
         <div class="zones">
@@ -95,12 +93,6 @@ export class PanelEditor extends LitElement implements LovelaceCardEditor {
     `;
   }
 
-  private _initialize(): void {
-    if (this.hass === undefined) return;
-    if (this._config === undefined) return;
-    this._initialized = true;
-  }
-
   private _addZone(): void {
     this._zoneCount = this._zoneCount! + 1;
     const maxEntities = 3;
@@ -121,21 +113,17 @@ export class PanelEditor extends LitElement implements LovelaceCardEditor {
     if (!this._config || !this.hass) {
       return;
     }
-    if (ev.detail.zone && !ev.detail.remove) {
+    if (ev.detail.zone) {
       const zone: zoneConfig = ev.detail.zone;
       const zoneIndex = ev.detail.zoneIndex;
       const currentZones = this._config.zones;
       const newZones = [...currentZones];
-      newZones.splice(zoneIndex, 1, zone);
+      if (!ev.detail.remove) {
+        newZones.splice(zoneIndex, 1, zone);
+      } else if (ev.detail.remove) {
+        newZones.splice(zoneIndex, 1);
+      }
       this._config = { ...this._config!, zones: newZones };
-      fireEvent(this, 'config-changed', { config: this._config });
-    } else if (ev.detail.remove) {
-      const zone: zoneConfig = ev.detail.zone;
-      const zoneIndex = this._config.zones.findIndex((_zone: { name: any }) => _zone.name === zone.name);
-      const currentZones = this._config.zones;
-      const newZones = [...currentZones];
-      newZones.splice(zoneIndex, 1);
-      this._config = { ...this._config, zones: newZones };
       fireEvent(this, 'config-changed', { config: this._config });
     }
   }
