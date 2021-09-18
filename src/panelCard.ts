@@ -228,7 +228,7 @@ export class PanelCard extends LitElement {
     const turnOn = (e.target).checked ? true : false;
     turnOnOffEntity(this.hass, state.entity_id, turnOn);
   }
-  private _handleMoreInfo(stateObj) {
+  private _handleMoreInfo(stateObj): void {
     fireEvent(this, "hass-more-info", {
       entityId: stateObj.entity_id,
     });
