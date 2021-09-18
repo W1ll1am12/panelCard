@@ -15,31 +15,20 @@ import {
   computeDomain,
   turnOnOffEntity,
   computeStateDisplay,
-  createThing,
   EntityConfig,
 } from 'custom-card-helpers';
+import { isTiltOnly } from './components/cover_helper';
  // This is a community maintained npm module with common helper functions/types
 import { fireEvent} from "custom-card-helpers/src/fire-event"
 import { findEntities, mapEntities } from "./components/find_entities"
 import './editor';
 import type { PanelCardConfig, zoneConfig, apperanceProperties} from './types';
 import { CARD_VERSION } from './const';
-import { localize } from './localize/localize';
 import { HassEntity } from 'home-assistant-js-websocket';
-
-let helpers = (window as any).cardHelpers;
-const helperPromise = new Promise<void>(async (resolve) => {
-  if (helpers) resolve();
-  if ((window as any).loadCardHelpers) {
-    helpers = await (window as any).loadCardHelpers();
-    (window as any).cardHelpers = helpers;
-    resolve();
-  }
-});
 
 /* eslint no-console: 0 */
 console.info(
-  `%c  PANEL-CARD \n%c  ${localize('common.version')} ${CARD_VERSION}    `,
+  `%c  PANEL-CARD \n%c  ${"Version"} ${CARD_VERSION}    `,
   'color: white; font-weight: bold; background: black',
   'color: white; font-weight: bold; background: dimgray',
 );
@@ -51,7 +40,6 @@ console.info(
   name: 'Panel Card',
   description: 'A custom panel to display entities grouped into zones',
 });
-
 @customElement('panel-card')
 export class PanelCard extends LitElement {
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
@@ -121,11 +109,11 @@ export class PanelCard extends LitElement {
         <div class="spacer" style="--backColor: ${apperanceProperties.propArray[2].attr};"></div>
         <div class="bottom">
           <div class="inner-main">
-            ${activeZone!.entities!.map((ent: { entity: string; name: string }) => {
+            ${activeZone!.entities!.map( (ent: { entity: string; name: string }) => {
               const stateObj = this.hass.states[ent.entity];
               return stateObj
                 ? html`
-                <div class="holder" style="--slider-width: ${apperanceProperties.propArray[1].attr + 'px'}; --slider-height: ${apperanceProperties.propArray[0].attr + 'px'};">
+                <div class="holder" style="--slider-width: ${apperanceProperties.propArray[1].attr + 'px'}; --slider-height: ${apperanceProperties.propArray[0].attr + 'px'};--backColor: ${apperanceProperties.propArray[2].attr}; --forgroundColor: ${apperanceProperties.propArray[3].attr};">
                   <div class="innerHolder" >
                     ${this._getEntityTypeHTML(stateObj, ent, apperanceProperties)}
                   </div>
@@ -147,9 +135,9 @@ export class PanelCard extends LitElement {
     switch (entType) {
       case "light":
         return html`
-        <div class="range-holder" style="--slider-width: ${apperanceProperties.propArray[1].attr + 'px'}; --slider-height: ${apperanceProperties.propArray[0].attr + 'px'}; --backColor: ${apperanceProperties.propArray[2].attr}; --forgroundColor: ${apperanceProperties.propArray[3].attr}">
+        <div class="range-holder" >
             <div class="range-info">
-              <h2>${ent.name || stateObj.attributes.friendly_name}</h2>
+              <h2 @click=${(_e) => this._handleMoreInfo(stateObj)}>${ent.name || stateObj.attributes.friendly_name}</h2>
               <h4 class="brightness">
               ${stateObj.state === 'off' ? '0' : Math.round(stateObj.attributes.brightness / 2.55)}
               </h4>
@@ -158,14 +146,12 @@ export class PanelCard extends LitElement {
               type="range"
               class="${stateObj.state}"
               .value="${stateObj.state === 'off'
-                ? '0'
-                : Math.round(stateObj.attributes.brightness / 2.55).toString()}"
+            ? '0'
+            : Math.round(stateObj.attributes.brightness / 2.55).toString()}"
               @change=${(e: { target: { value: any } }) => this._setBrightness(stateObj, e.target.value)}
             />
         </div>
-        <button class="moreInfo" @click=${(_e) => this._handleMoreInfo(stateObj)}></button>
        `
-        break
       case "switch":
       case "fan":
       case "group":
@@ -184,46 +170,50 @@ export class PanelCard extends LitElement {
             switchValue = 0;
         }
         return html`
-          <div
-            class="switch-holder"
-            style="--switch-height: ${apperanceProperties.propArray[0].attr + 'px'};--switch-width: ${apperanceProperties.propArray[1].attr + 'px'};--backColor: ${apperanceProperties.propArray[2].attr}; --forgroundColor: ${apperanceProperties.propArray[3].attr}"
-          >
+          <div class="switch-holder">
             <div class="switch-label">
-              <h2>${ent.name || stateObj.attributes.friendly_name}</h2>
+              <h2 @click=${(_e) => this._handleMoreInfo(stateObj)}>${ent.name || stateObj.attributes.friendly_name}</h2>
             </div>
             <div class="${ entType === "lock" ? "switch-toggle lock" : "switch-toggle"}">
               <input type="checkbox" id="${ent.name || stateObj.attributes.friendly_name}" ?checked="${switchValue === 1 ? true : false}"  @click= ${(e) => this._switch(e, stateObj) }>
               <label for="${ent.name || stateObj.attributes.friendly_name}"></label>
             </div>
           </div>
-          <button class="moreInfo" @click=${(_e) => this._handleMoreInfo(stateObj)}></button>
         `
-        break
-
       case "sensor":
       case "binary_sensor":
       case "air_quality":
         return html`
-        <div class="info" style="--sliderWidth: ${apperanceProperties.propArray[1].attr + 'px'}; --sliderHeight: ${apperanceProperties.propArray[0].attr + 'px'}; --backColor: ${apperanceProperties.propArray[2].attr}; --forgroundColor: ${apperanceProperties.propArray[3].attr};">
-          <h2>${stateObj.attributes.friendly_name}</h2>
+        <div class="info">
+          <h2 @click=${(_e) => this._handleMoreInfo(stateObj)}>${stateObj.attributes.friendly_name}</h2>
           <h4>${computeStateDisplay(this.hass.localize, stateObj, this.hass.locale!)}</h4>
         </div>
-        <button class="moreInfo" @click=${(_e) => this._handleMoreInfo(stateObj)}></button>
         `
-        break
-      // case "cover":
-      //   const conf: EntityConfig = {entity: ent.entity, type: "entity"}
-      //   const element = this._createCard(conf);
-      //   return html
-      //   `
-      //   <div>
-      //   ${element}
-      //   </div>
-      //   `
-      //   break
+      case "cover":
+        const conf: EntityConfig = { entity: ent.entity, type: 'cover-entity' }
+        return html`
+        <div class= "cover">
+          <div class="info">
+            <h2 @click=${(_e) => this._handleMoreInfo(stateObj)}>${stateObj.attributes.friendly_name}</h2>
+          </div>
+          <div class= "controls" style="color: ${apperanceProperties.propArray[3].attr}; --disabled-text-color: ${apperanceProperties.propArray[2].attr};">
+            ${ isTiltOnly(stateObj)
+            ? html `
+               <ha-cover-tilt-controls
+                 .hass=${this.hass}
+                 .stateObj=${stateObj}
+               ></ha-cover-tilt-controls>`
+              : html `
+               <ha-cover-controls
+                 .hass=${this.hass}
+                 .stateObj=${stateObj}
+               ></ha-cover-controls>`
+            }
+          </div>
+        </div>
+        `
       default:
         return html`<h2>UNKNOWN ENTITY TYPE</h2>`
-        break
     }
   }
 
@@ -238,26 +228,11 @@ export class PanelCard extends LitElement {
     const turnOn = (e.target).checked ? true : false;
     turnOnOffEntity(this.hass, state.entity_id, turnOn);
   }
-
-  private _createCard(config: any): any {
-    if (helpers) return helpers.createCardElement(config);
-    else {
-      const element = createThing(config);
-      helperPromise.then(() => {
-        fireEvent(element, 'll-rebuild', {});
-      });
-      return element;
-    }
-  }
-
-
   private _handleMoreInfo(stateObj) {
     fireEvent(this, "hass-more-info", {
       entityId: stateObj.entity_id,
     });
   }
-
-
   private _clickHandler(event: { target: { innerText: string } }): void {
     this.active = event.target.innerText;
   }
@@ -425,8 +400,8 @@ export class PanelCard extends LitElement {
       }
 
       .switch-holder {
-        height: var(--switch-height);
-        width: var(--switch-width);
+        height: var(--slider-height);
+        width: var(--slider-width);
         background-color: var(--backColor);
         position: relative;
         display: flex;
@@ -508,9 +483,9 @@ export class PanelCard extends LitElement {
         justify-content: center;
       }
 
-      .info{
-        width: var(--sliderWidth);
-        height: var(--sliderHeight);
+      .info, .cover{
+        width: var(--slider-width);
+        height: var(--slider-height);
         text-align: center;
         border-radius: 10px;
         background-color: var(--backColor);

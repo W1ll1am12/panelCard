@@ -3,4 +3,6 @@ lovelace:
   resources:
   - url: http://0.0.0.0:5000/panelCard.js
     type: module
+  - url: /local/weather-card-chart/weather-card-chart.js
+    type: module
 demo:
