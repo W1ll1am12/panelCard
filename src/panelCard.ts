@@ -290,6 +290,7 @@ export class PanelCard extends LitElement {
         margin-bottom: 7px;
         box-shadow: 2px 2px 2px darkgray;
         border-radius: 5px;
+        color: var(--primary-text-color);
       }
 
       .buttons button:active, .buttons button:focus{

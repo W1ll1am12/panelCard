@@ -15,7 +15,6 @@
   "author": "Will Rooks",
   "license": "MIT",
   "dependencies": {
-    "@mdi/js": "^6.1.95",
     "custom-card-helpers": "^1.8.0",
     "home-assistant-js-websocket": "^5.11.1",
     "lit": "^2.0.0-rc.4"
